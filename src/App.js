@@ -74,16 +74,17 @@ const AppContent = () => {
   const [activeNav, setActiveNav] = useState(location.pathname.substring(1) || 'overview');
   const charts = useMemo(() => ({}), []);
   
-  // Update active nav when location changes
+  // Set active nav based on current route
   useEffect(() => {
-    const path = location.pathname === '/' ? 'overview' : location.pathname.substring(1);
-    setActiveNav(path);
-    
-    // Close sidebar on mobile when navigating
-    if (window.innerWidth <= 768) {
-      setIsSidebarOpen(false);
+    const currentPath = location.pathname === '/' ? 'overview' : location.pathname.substring(1);
+    setActiveNav(currentPath);
+    // Update document title
+    const currentPage = navItems.find(item => item.id === currentPath);
+    if (currentPage) {
+      document.title = `${currentPage.label} | Government Revenue Dashboard`;
     }
   }, [location]);
+
   
   // Handle window resize
   useEffect(() => {
@@ -223,52 +224,84 @@ const AppContent = () => {
             <Route 
               path="/" 
               element={
-                <Overview 
-                  currentStateFilter={currentStateFilter}
-                  setCurrentStateFilter={setCurrentStateFilter}
-                  currentYearRange={currentYearRange}
-                  setCurrentYearRange={setCurrentYearRange}
-                  revenueData={revenueData}
-                  charts={charts}
-                />
+                <>
+                  <h1 className="page-title">Overview</h1>
+                  <Overview 
+                    currentStateFilter={currentStateFilter}
+                    setCurrentStateFilter={setCurrentStateFilter}
+                    currentYearRange={currentYearRange}
+                    setCurrentYearRange={setCurrentYearRange}
+                    revenueData={revenueData}
+                    charts={charts}
+                  />
+                </>
               } 
             />
             <Route 
               path="/quick-search" 
-              element={<QuickSearch revenueData={revenueData} />} 
+              element={
+                <>
+                  <h1 className="page-title">Quick Search</h1>
+                  <QuickSearch revenueData={revenueData} />
+                </>
+              } 
             />
             <Route 
               path="/trends" 
               element={
-                <RevenueTrends 
-                  currentStateFilter={currentStateFilter}
-                  currentYearRange={currentYearRange}
-                  revenueData={revenueData}
-                  charts={charts}
-                />
+                <>
+                  <h1 className="page-title">Revenue Trends</h1>
+                  <RevenueTrends 
+                    currentStateFilter={currentStateFilter}
+                    currentYearRange={currentYearRange}
+                    revenueData={revenueData}
+                    charts={charts}
+                  />
+                </>
               } 
             />
             <Route 
               path="/analysis" 
               element={
-                <Analysis 
-                  currentStateFilter={currentStateFilter}
-                  revenueData={revenueData}
-                  charts={charts}
-                />
+                <>
+                  <h1 className="page-title">Analysis</h1>
+                  <Analysis 
+                    currentStateFilter={currentStateFilter}
+                    revenueData={revenueData}
+                    charts={charts}
+                  />
+                </>
               } 
             />
             <Route 
               path="/compare" 
               element={
-                <CompareStates 
-                  currentStateFilter={currentStateFilter}
-                  revenueData={revenueData}
-                  charts={charts}
-                />
+                <>
+                  <h1 className="page-title">Compare States</h1>
+                  <CompareStates 
+                    revenueData={revenueData}
+                    yearColumns={yearColumns}
+                    formatCurrency={formatCurrency}
+                    formatPercentage={formatPercentage}
+                    charts={charts}
+                  />
+                </>
               } 
             />
-            <Route path="/settings" element={<Settings />} />
+            <Route 
+              path="/settings" 
+              element={
+                <>
+                  <h1 className="page-title">Settings</h1>
+                  <Settings 
+                    currentStateFilter={currentStateFilter}
+                    setCurrentStateFilter={setCurrentStateFilter}
+                    currentYearRange={currentYearRange}
+                    setCurrentYearRange={setCurrentYearRange}
+                  />
+                </>
+              } 
+            />
           </Routes>
         </div>
       </main>

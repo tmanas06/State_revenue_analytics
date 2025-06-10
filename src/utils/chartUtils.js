@@ -153,9 +153,14 @@ export const createRevenueCompositionChart = (filteredData, charts) => {
 };
 
 // Create state comparison chart
-export const createStateComparisonChart = (data, stateFilter, years, charts) => {
+export const createStateComparisonChart = (data, stateFilter, years, charts = {}) => {
   const ctx = document.getElementById('stateComparisonChart')?.getContext('2d');
-  if (!ctx) return;
+  if (!ctx) return null;
+  
+  // Initialize charts object if not provided
+  if (!charts.stateComparison) {
+    charts.stateComparison = null;
+  }
   
   // Filter data based on state filter
   let filteredData = [...data];
@@ -192,42 +197,50 @@ export const createStateComparisonChart = (data, stateFilter, years, charts) => 
   }));
   
   // Destroy existing chart if it exists
-  if (charts.stateComparison) {
+  if (charts.stateComparison && typeof charts.stateComparison.destroy === 'function') {
     charts.stateComparison.destroy();
   }
   
-  // Create new chart
-  charts.stateComparison = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: types,
-      datasets: datasets
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: (value) => formatCurrency(value)
-          }
-        }
+  try {
+    // Create new chart
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: types,
+        datasets: datasets
       },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: (context) => {
-              return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => formatCurrency(value)
             }
           }
         },
-        legend: {
-          position: 'top',
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+              }
+            }
+          },
+          legend: {
+            position: 'top',
+          }
         }
       }
-    }
-  });
+    });
+    
+    charts.stateComparison = chart;
+    return chart;
+  } catch (error) {
+    console.error('Error creating comparison chart:', error);
+    return null;
+  }
 };
 
 // Create growth rate chart

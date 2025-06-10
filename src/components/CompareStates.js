@@ -1,19 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createStateComparisonChart } from '../utils/chartUtils';
 
-const CompareStates = ({ currentStateFilter, revenueData, charts }) => {
+const CompareStates = ({ currentStateFilter, revenueData, charts = {} }) => {
+  const chartInstance = useRef(null);
   useEffect(() => {
-    // Always show both states for comparison
-    const yearColumns = ['FY17', 'FY18', 'FY19', 'FY20', 'FY21', 'FY22', 'FY23', 'FY24', 'FY25-RE', 'FY26-BE'];
-    const years = yearColumns.slice(0, 9); // Default to all years
+    if (!revenueData || revenueData.length === 0) return;
     
-    // Create chart with both states
-    createStateComparisonChart(revenueData, 'both', years, charts);
+    try {
+      // Always show both states for comparison
+      const yearColumns = ['FY17', 'FY18', 'FY19', 'FY20', 'FY21', 'FY22', 'FY23', 'FY24', 'FY25-RE', 'FY26-BE'];
+      const years = yearColumns.slice(0, 9); // Default to all years
+      
+      // Create chart with both states
+      const chart = createStateComparisonChart(revenueData, 'both', years, charts);
+      if (chart) {
+        chartInstance.current = chart;
+      }
+    } catch (error) {
+      console.error('Error creating comparison chart:', error);
+    }
     
     // Cleanup function
     return () => {
-      if (charts.stateComparison) {
-        charts.stateComparison.destroy();
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+        chartInstance.current = null;
       }
     };
   }, [revenueData, charts]);
