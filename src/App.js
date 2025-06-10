@@ -7,10 +7,12 @@ import RevenueTrends from './components/RevenueTrends';
 import Analysis from './components/Analysis';
 import CompareStates from './components/CompareStates';
 import Settings from './components/Settings';
+import QuickSearch from './components/QuickSearch';
 
 // Icons (using emoji as placeholders - in a real app, use an icon library)
 const Icons = {
   Home: '🏠',
+  Search: '🔍',
   Trends: '📈',
   Analysis: '📊',
   Compare: '🔄',
@@ -112,6 +114,7 @@ const AppContent = () => {
   // Navigation items
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Icons.Home, path: '/' },
+    { id: 'quick-search', label: 'Quick Search', icon: Icons.Search, path: '/quick-search' },
     { id: 'trends', label: 'Revenue Trends', icon: Icons.Trends, path: '/trends' },
     { id: 'analysis', label: 'Analysis', icon: Icons.Analysis, path: '/analysis' },
     { id: 'compare', label: 'Compare States', icon: Icons.Compare, path: '/compare' },
@@ -229,6 +232,10 @@ const AppContent = () => {
                   charts={charts}
                 />
               } 
+            />
+            <Route 
+              path="/quick-search" 
+              element={<QuickSearch revenueData={revenueData} />} 
             />
             <Route 
               path="/trends" 
