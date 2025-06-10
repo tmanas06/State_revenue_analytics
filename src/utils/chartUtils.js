@@ -154,69 +154,107 @@ export const createRevenueCompositionChart = (filteredData, charts) => {
 
 // Create state comparison chart
 export const createStateComparisonChart = (data, stateFilter, years, charts = {}) => {
-  const ctx = document.getElementById('stateComparisonChart')?.getContext('2d');
-  if (!ctx) return null;
+  const container = document.getElementById('stateComparisonContainer');
+  if (!container) return null;
   
-  // Initialize charts object if not provided
-  if (!charts.stateComparison) {
-    charts.stateComparison = null;
+  // Clear previous charts
+  container.innerHTML = '';
+  
+  // If no data, return
+  if (!data || data.length === 0) {
+    return null;
   }
   
-  // Filter data based on state filter
-  let filteredData = [...data];
-  if (stateFilter === 'odisha') {
-    filteredData = filteredData.filter(item => item.States === 'Odisha');
-  } else if (stateFilter === 'uttar-pradesh') {
-    filteredData = filteredData.filter(item => item.States === 'Uttar Pradesh');
-  }
+  // Get unique states and types from the filtered data
+  const states = [...new Set(data.map(item => item.States))];
+  const types = [...new Set(data.map(item => item.Type))];
+  const year = years[0] || 'FY24'; // Use the first year if multiple provided
   
-  // Group by state and type
-  const stateTypeData = {};
-  filteredData.forEach(item => {
-    if (!stateTypeData[item.States]) {
-      stateTypeData[item.States] = {};
-    }
-    stateTypeData[item.States][item.Type] = item['FY24'] || 0;
-  });
-  
-  const types = [...new Set(filteredData.map(item => item.Type))];
-  const states = Object.keys(stateTypeData);
-  
+  // Chart colors
   const chartColors = [
-    'rgba(54, 162, 235, 0.7)',
-    'rgba(255, 99, 132, 0.7)',
-    'rgba(75, 192, 192, 0.7)'
+    'rgba(54, 162, 235, 0.8)',
+    'rgba(255, 99, 132, 0.8)',
+    'rgba(75, 192, 192, 0.8)',
+    'rgba(255, 206, 86, 0.8)',
+    'rgba(153, 102, 255, 0.8)',
+    'rgba(255, 159, 64, 0.8)'
   ];
   
-  const datasets = states.map((state, i) => ({
-    label: state,
-    data: types.map(type => stateTypeData[state][type] || 0),
-    backgroundColor: chartColors[i % chartColors.length],
-    borderColor: chartColors[i % chartColors.length].replace('0.7', '1'),
-    borderWidth: 1
-  }));
+  // Create a container for the charts
+  const chartsContainer = document.createElement('div');
+  chartsContainer.className = 'state-charts-container';
+  container.appendChild(chartsContainer);
   
-  // Destroy existing chart if it exists
-  if (charts.stateComparison && typeof charts.stateComparison.destroy === 'function') {
-    charts.stateComparison.destroy();
-  }
+  // Create a chart for each selected state
+  const selectedStates = [...new Set(data.map(item => item.States))];
   
-  try {
-    // Create new chart
-    const chart = new Chart(ctx, {
+  selectedStates.forEach((state, stateIndex) => {
+    // Create chart container
+    const chartContainer = document.createElement('div');
+    chartContainer.className = 'state-chart-container';
+    
+    const canvas = document.createElement('canvas');
+    canvas.id = `stateChart-${stateIndex}`;
+    chartContainer.appendChild(canvas);
+    chartsContainer.appendChild(chartContainer);
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Filter data for this state and selected types
+    const stateData = data.filter(item => item.States === state);
+    
+    // Prepare datasets for this state
+    const chartData = {
+      labels: stateData.map(item => item.Type),
+      datasets: [{
+        label: `Revenue (${year})`,
+        data: stateData.map(item => item[year] || 0),
+        backgroundColor: chartColors.slice(0, stateData.length),
+        borderColor: chartColors.slice(0, stateData.length).map(color => color.replace('0.8', '1')),
+        borderWidth: 1,
+        borderRadius: 4,
+        barThickness: 20,
+        categoryPercentage: 0.8,
+        barPercentage: 0.9
+      }]
+    };
+    
+    // Create the chart
+    new Chart(ctx, {
       type: 'bar',
-      data: {
-        labels: types,
-        datasets: datasets
-      },
+      data: chartData,
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        indexAxis: 'x', // Changed to x for vertical columns
         scales: {
           y: {
             beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Revenue (₹ Cr)',
+              font: {
+                weight: 'bold',
+                size: 13
+              }
+            },
+            grid: {
+              display: true,
+              color: 'rgba(0, 0, 0, 0.05)'
+            },
             ticks: {
               callback: (value) => formatCurrency(value)
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              autoSkip: false,
+              maxRotation: 45,
+              minRotation: 45
             }
           }
         },
@@ -224,23 +262,49 @@ export const createStateComparisonChart = (data, stateFilter, years, charts = {}
           tooltip: {
             callbacks: {
               label: (context) => {
-                return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                const label = context.dataset.label || '';
+                const value = context.raw || 0;
+                return `${label}: ${formatCurrency(value)}`;
+              },
+              labelColor: function(context) {
+                return {
+                  borderColor: context.dataset.borderColor[context.dataIndex],
+                  backgroundColor: context.dataset.backgroundColor[context.dataIndex],
+                  borderWidth: 2,
+                  borderRadius: 2,
+                };
               }
             }
           },
           legend: {
-            position: 'top',
+            display: false
+          },
+          title: {
+            display: true,
+            text: state,
+            font: {
+              size: 16,
+              weight: '600',
+              family: 'Inter, system-ui, -apple-system, sans-serif'
+            },
+            padding: {
+              top: 0,
+              bottom: 20
+            }
           }
+        },
+        layout: {
+          padding: 20
+        },
+        animation: {
+          duration: 1000,
+          easing: 'easeInOutQuart'
         }
       }
     });
-    
-    charts.stateComparison = chart;
-    return chart;
-  } catch (error) {
-    console.error('Error creating comparison chart:', error);
-    return null;
-  }
+  });
+  
+  return container;
 };
 
 // Create growth rate chart
