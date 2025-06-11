@@ -33,13 +33,21 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [theme, getSystemTheme]);
 
-  // Apply dark mode class to document
+  // Apply theme class to root HTML element and body
   useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    
     if (darkMode) {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      body.classList.add('dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      body.classList.remove('dark');
     }
+    
+    // Also set a data-theme attribute for more specific CSS targeting if needed
+    root.setAttribute('data-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   const setThemePreference = (newTheme) => {

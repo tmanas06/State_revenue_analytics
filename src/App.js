@@ -287,7 +287,7 @@ const AppContent = () => {
   }, [isSidebarOpen]);
 
   return (
-    <div className={`app-container ${darkMode ? 'dark' : ''}`}>
+    <div className="app-container">
       <div className="app-layout">
         {/* Sidebar */}
         <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
