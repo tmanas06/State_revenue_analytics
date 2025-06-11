@@ -168,9 +168,9 @@ const Settings = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
           </div>
         </div>
         
-        <div className="setting-group">
-          <h3>Data & Currency</h3>
-          <div className="form-group">
+        {/* <div className="setting-group"> */}
+          {/* <h3>Data & Currency</h3> */}
+          {/* <div className="form-group">
             <label htmlFor="currency">Currency</label>
             <select 
               id="currency" 
@@ -183,9 +183,9 @@ const Settings = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
               <option value="USD">US Dollar ($)</option>
               <option value="EUR">Euro (€)</option>
             </select>
-          </div>
+          </div> */}
           
-          <div className="form-group">
+          {/* <div className="form-group">
             <label htmlFor="dataRefreshInterval">Data Refresh Interval (minutes)</label>
             <select 
               id="dataRefreshInterval" 
@@ -201,10 +201,10 @@ const Settings = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
               <option value="60">1 hour</option>
               <option value="0">Manual refresh only</option>
             </select>
-          </div>
-        </div>
+          </div> */}
+        {/* </div> */}
         
-        <div className="setting-group">
+        {/* <div className="setting-group">
           <h3>Notifications</h3>
           <div className="form-group">
             <label>
@@ -218,7 +218,7 @@ const Settings = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
               <span>Enable Notifications</span>
             </label>
           </div>
-        </div>
+        </div> */}
         
         <div className="form-actions">
           <button type="submit" className="btn btn-primary">
