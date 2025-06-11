@@ -79,17 +79,23 @@ const CompareStates = ({ revenueData, charts = {} }) => {
     try {
       // Create chart with selected states and types
       createStateComparisonChart(
-        filteredData, 
-        selectedStates, 
-        [year], 
-        charts
+        filteredData, // Filtered data
+        'all', // stateFilter - using 'all' since we're filtering data before passing
+        [year], // years array
+        charts // charts object
       );
     } catch (error) {
       console.error('Error creating comparison charts:', error);
     }
     
-    // No need to clean up individual charts as they're managed by the container
-  }, [filteredData, selectedStates, selectedTypes, year, charts]);
+    // Cleanup function to destroy charts when component unmounts or filters change
+    return () => {
+      const container = document.getElementById('stateComparisonContainer');
+      if (container) {
+        container.innerHTML = '';
+      }
+    };
+  }, [filteredData, year, charts]);
 
   const toggleState = (state) => {
     setSelectedStates(prev => 

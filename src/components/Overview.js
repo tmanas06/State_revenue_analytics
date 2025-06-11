@@ -35,29 +35,73 @@ const Overview = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
     const yearRange = yearColumns.slice(currentYearRange[0], currentYearRange[1] + 1);
     setYears(yearRange);
     
-    // Calculate total revenue
-    const total = filtered.reduce((sum, item) => sum + (item['FY24'] || 0), 0);
-    setTotalRevenue(total);
+    // Calculate metrics for the selected state(s)
+    const currentYear = 'FY24';
+    const prevYear = 'FY23';
     
-    // Calculate top category
-    const categories = {};
-    filtered.forEach(item => {
-      categories[item.Type] = (categories[item.Type] || 0) + (item['FY24'] || 0);
-    });
-    const top = Object.entries(categories).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
-    setTopCategory(top);
-    
-    // Calculate growth rate
+    // Calculate total revenue for current and previous year
     let currentYearTotal = 0;
     let prevYearTotal = 0;
     
-    filtered.forEach(item => {
-      currentYearTotal += item['FY24'] || 0;
-      prevYearTotal += item['FY23'] || 0;
+    // Group data by state for all states calculation
+    const stateMetrics = {};
+    
+    // Initialize state metrics
+    states.forEach(state => {
+      stateMetrics[state] = {
+        currentYearTotal: 0,
+        prevYearTotal: 0,
+        categories: {}
+      };
     });
     
-    const rate = prevYearTotal ? ((currentYearTotal - prevYearTotal) / prevYearTotal * 100) : 0;
-    setGrowthRate(rate);
+    // Aggregate data for all states
+    revenueData.forEach(item => {
+      const state = item.States;
+      if (stateMetrics[state]) {
+        stateMetrics[state].currentYearTotal += item[currentYear] || 0;
+        stateMetrics[state].prevYearTotal += item[prevYear] || 0;
+        
+        // Track categories for top category calculation
+        stateMetrics[state].categories[item.Type] = 
+          (stateMetrics[state].categories[item.Type] || 0) + (item[currentYear] || 0);
+      }
+    });
+    
+    // Calculate metrics based on current filter
+    if (currentStateFilter === 'both') {
+      // Sum across all states
+      const allStatesData = Object.values(stateMetrics);
+      currentYearTotal = allStatesData.reduce((sum, state) => sum + state.currentYearTotal, 0);
+      prevYearTotal = allStatesData.reduce((sum, state) => sum + state.prevYearTotal, 0);
+      
+      // Find top category across all states
+      const allCategories = {};
+      allStatesData.forEach(state => {
+        Object.entries(state.categories).forEach(([category, value]) => {
+          allCategories[category] = (allCategories[category] || 0) + value;
+        });
+      });
+      const top = Object.entries(allCategories).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+      setTopCategory(top);
+    } else {
+      // For single state
+      const stateData = stateMetrics[currentStateFilter] || {};
+      currentYearTotal = stateData.currentYearTotal || 0;
+      prevYearTotal = stateData.prevYearTotal || 0;
+      
+      const top = Object.entries(stateData.categories || {})
+        .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+      setTopCategory(top);
+    }
+    
+    // Calculate growth rate
+    const growth = prevYearTotal > 0 
+      ? ((currentYearTotal - prevYearTotal) / prevYearTotal) * 100 
+      : 0;
+      
+    setTotalRevenue(currentYearTotal);
+    setGrowthRate(growth);
     
   }, [revenueData, currentStateFilter, currentYearRange]);
   
@@ -166,14 +210,18 @@ const Overview = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
         <div className="card">
           <h3>Top Category</h3>
           <div className="card-value">{topCategory}</div>
-          <div className="card-trend positive">↑ 8.2% growth</div>
+          <div className="card-trend">
+            {topCategory ? `${topCategory.length > 12 ? topCategory.substring(0, 10) + '...' : topCategory}` : 'N/A'}
+          </div>
         </div>
         <div className="card">
           <h3>States</h3>
           <div className="card-value">
-            {currentStateFilter === 'both' ? '2' : '1'}
+            {currentStateFilter === 'both' ? states.length : '1'}
           </div>
-          <div className="card-trend neutral">Active</div>
+          <div className="card-trend neutral">
+            {currentStateFilter === 'both' ? 'All States' : currentStateFilter}
+          </div>
         </div>
       </div>
 

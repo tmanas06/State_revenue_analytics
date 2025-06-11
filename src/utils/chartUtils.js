@@ -327,13 +327,15 @@ const createStateComparisonChart = (data, stateFilter, years, charts = {}) => {
   // Create a chart for each selected state
   const selectedStates = [...new Set(data.map(item => item.States))];
   
-  selectedStates.forEach((state, stateIndex) => {
+  selectedStates.forEach((state, index) => {
     // Create chart container
     const chartContainer = document.createElement('div');
     chartContainer.className = 'state-chart-container';
     
+    // Create a unique ID for each chart
+    const chartId = `stateChart-${index}`;
     const canvas = document.createElement('canvas');
-    canvas.id = `stateChart-${stateIndex}`;
+    canvas.id = chartId;
     chartContainer.appendChild(canvas);
     chartsContainer.appendChild(chartContainer);
     
