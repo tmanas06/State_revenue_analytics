@@ -4,8 +4,7 @@ const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem('theme') || 'system';
-    return savedTheme;
+    return localStorage.getItem('theme') || 'light';
   });
 
   const getSystemTheme = useCallback(() => {
