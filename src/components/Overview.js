@@ -16,6 +16,13 @@ const Overview = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
   const [topCategory, setTopCategory] = useState('');
   const [growthRate, setGrowthRate] = useState(0);
 
+  // Get unique states from revenue data
+  const states = React.useMemo(() => {
+    if (!revenueData) return [];
+    const stateSet = new Set(revenueData.map(item => item.States));
+    return Array.from(stateSet).sort();
+  }, [revenueData]);
+
   // Filter data based on state filter
   useEffect(() => {
     if (!revenueData) return;
@@ -66,15 +73,24 @@ const Overview = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
   
   // Helper function to filter data by state
   const getFilteredData = (data, stateFilter) => {
-    let filtered = [...data];
+    if (!data) return [];
     
-    if (stateFilter === 'odisha') {
-      filtered = filtered.filter(item => item.States === 'Odisha');
-    } else if (stateFilter === 'uttar-pradesh') {
-      filtered = filtered.filter(item => item.States === 'Uttar Pradesh');
+    if (stateFilter === 'both') {
+      return [...data];
     }
     
-    return filtered;
+    // Convert state filter to match the format in the data
+    const stateName = stateFilter
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+      
+    return data.filter(item => item.States === stateName);
+  };
+  
+  // Convert state name to URL-friendly format
+  const toUrlFriendly = (state) => {
+    return state.toLowerCase().replace(/\s+/g, '-');
   };
   
   // Format currency
@@ -91,26 +107,27 @@ const Overview = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
       <div className="filters">
         <div className="filter-group">
           <label>State</label>
-          <div className="btn-group">
+          <div className="btn-group" style={{ flexWrap: 'wrap' }}>
             <button 
+              key="both"
               className={`btn ${currentStateFilter === 'both' ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setCurrentStateFilter('both')}
             >
-              Both
+              All States
             </button>
-            <button 
-              className={`btn ${currentStateFilter === 'odisha' ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setCurrentStateFilter('odisha')}
-            >
-              Odisha
-            </button>
-            <button 
-              className={`btn ${currentStateFilter === 'uttar-pradesh' ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setCurrentStateFilter('uttar-pradesh')}
-            >
-              Uttar Pradesh
-            </button>
-          </div>
+            {states.map(state => {
+              const stateId = toUrlFriendly(state);
+              return (
+                <button
+                  key={stateId}
+                  className={`btn ${currentStateFilter === stateId ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => setCurrentStateFilter(stateId)}
+                >
+                  {state}
+                </button>
+              );
+            })}
+          </div>  
         </div>
 
         <div className="filter-group">

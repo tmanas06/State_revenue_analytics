@@ -17,7 +17,7 @@ const formatPercentage = (value) => {
 };
 
 // Create revenue trends chart
-export const createRevenueTrendsChart = (filteredData, years, charts) => {
+const createRevenueTrendsChart = (filteredData, years, charts) => {
   const ctx = document.getElementById('revenueTrendsChart')?.getContext('2d');
   if (!ctx) return;
   
@@ -93,67 +93,206 @@ export const createRevenueTrendsChart = (filteredData, years, charts) => {
 };
 
 // Create revenue composition chart
-export const createRevenueCompositionChart = (filteredData, charts) => {
-  const ctx = document.getElementById('revenueCompositionChart')?.getContext('2d');
-  if (!ctx) return;
-  
-  // Aggregate data by type
-  const typeData = {};
-  filteredData.forEach(item => {
-    if (!typeData[item.Type]) {
-      typeData[item.Type] = 0;
-    }
-    typeData[item.Type] += item['FY24'] || 0;
-  });
-  
-  const chartColors = [
-    'rgba(54, 162, 235, 0.7)',
-    'rgba(255, 99, 132, 0.7)',
-    'rgba(75, 192, 192, 0.7)',
-    'rgba(255, 159, 64, 0.7)',
-    'rgba(153, 102, 255, 0.7)'
-  ];
-  
+const createRevenueCompositionChart = (data, charts, selectedYear = 'FY24') => {
   // Destroy existing chart if it exists
   if (charts.revenueComposition) {
     charts.revenueComposition.destroy();
   }
-  
-  // Create new chart
+
+  // Get canvas element
+  const ctx = document.getElementById('revenueCompositionChart');
+  if (!ctx) return;
+
+  // Prepare data for the chart
+  const labels = [];
+  const values = [];
+  const backgroundColors = [
+    '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+    '#5a5c69', '#858796', '#3a3b45', '#00bcd4', '#ff9800',
+    '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4',
+    '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39'
+  ];
+
+  // Get the first data point (assuming data is filtered by state)
+  if (data.length > 0) {
+    const item = data[0];
+    
+    // Get all years from the data
+    const years = Object.keys(item).filter(key => 
+      key !== 'States' && key !== 'State Code' && key !== 'Total' && 
+      key !== 'Total Tax Revenue' && key !== 'Total Non-Tax Revenue' &&
+      key !== 'Total Revenue' && key !== 'Population (in crores)' &&
+      key !== 'Per Capita Income (in INR)'
+    );
+
+    // Find the closest matching year if exact match not found
+    let yearToUse = selectedYear;
+    if (!(selectedYear in item)) {
+      // Try to find a year that starts with the same prefix (e.g., FY24-RE for FY24)
+      const yearPrefix = selectedYear.replace(/-.*$/, '');
+      const matchingYear = years.find(y => y.startsWith(yearPrefix));
+      if (matchingYear) {
+        yearToUse = matchingYear;
+      } else {
+        // Fallback to the latest available year
+        yearToUse = years[years.length - 1];
+      }
+    }
+
+    // Add all revenue categories for the selected year
+    const sortedKeys = Object.entries(item)
+      .filter(([key, value]) => 
+        key !== 'States' && 
+        key !== 'State Code' && 
+        key !== 'Total' &&
+        key !== 'Total Tax Revenue' && 
+        key !== 'Total Non-Tax Revenue' &&
+        key !== 'Total Revenue' && 
+        key !== 'Population (in crores)' && 
+        key !== 'Per Capita Income (in INR)' &&
+        typeof value === 'number' && 
+        value > 0
+      )
+      .sort((a, b) => b[1] - a[1]); // Sort by value in descending order
+
+    sortedKeys.forEach(([key, value]) => {
+      labels.push(key.replace(/_/g, ' '));
+      values.push(value);
+    });
+  }
+
+  // Create the chart
   charts.revenueComposition = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: Object.keys(typeData),
+      labels: labels,
       datasets: [{
-        data: Object.values(typeData),
-        backgroundColor: chartColors.slice(0, Object.keys(typeData).length),
-        borderWidth: 1
-      }]
+        data: values,
+        backgroundColor: backgroundColors.slice(0, values.length),
+        hoverBackgroundColor: backgroundColors.slice(0, values.length).map(c => `${c}cc`),
+        hoverBorderColor: 'rgba(234, 236, 244, 1)',
+        borderWidth: 2,
+      }],
     },
     options: {
-      responsive: true,
       maintainAspectRatio: false,
+      responsive: true,
       plugins: {
         tooltip: {
+          backgroundColor: "rgb(255,255,255)",
+          bodyColor: "#5a5c69",
+          titleColor: "#4e73df",
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          },
+          borderColor: '#dddfeb',
+          borderWidth: 1,
+          padding: 15,
+          displayColors: false,
           callbacks: {
-            label: (context) => {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.raw || 0;
               const total = context.dataset.data.reduce((a, b) => a + b, 0);
-              const value = context.raw;
               const percentage = Math.round((value / total) * 100);
-              return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+              return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage}%)`;
             }
           }
         },
         legend: {
+          display: true,
           position: 'right',
+          labels: {
+            padding: 15,
+            usePointStyle: true,
+            font: {
+              size: 12
+            },
+            generateLabels: function(chart) {
+              const data = chart.data;
+              if (data.labels.length && data.datasets.length) {
+                return data.labels.map((label, i) => {
+                  const value = data.datasets[0].data[i];
+                  const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                  const percentage = Math.round((value / total) * 100);
+                  
+                  return {
+                    text: `${label} (${percentage}%)`,
+                    fillStyle: data.datasets[0].backgroundColor[i],
+                    hidden: false,
+                    lineCap: 'round',
+                    lineDash: [],
+                    lineDashOffset: 0,
+                    lineJoin: 'round',
+                    lineWidth: 1,
+                    strokeStyle: 'transparent',
+                    pointStyle: 'circle',
+                    rotation: 0,
+                    // Add click handler to show/hide segments
+                    datasetIndex: 0,
+                    index: i
+                  };
+                });
+              }
+              return [];
+            }
+          },
+          onClick: function(e, legendItem, legend) {
+            // Get the chart instance
+            const chart = legend.chart;
+            // Get the dataset meta for the first dataset
+            const meta = chart.getDatasetMeta(0);
+            // Toggle the visibility of the segment
+            meta.data[legendItem.index].hidden = !meta.data[legendItem.index].hidden;
+            // Update the chart
+            chart.update();
+          }
+        },
+        title: {
+          display: true,
+          text: 'Revenue Composition by Category',
+          font: {
+            size: 16,
+            weight: 'bold'
+          },
+          padding: {
+            top: 10,
+            bottom: 20
+          }
+        }
+      },
+      cutout: '65%',
+      onHover: (event, chartElement) => {
+        // Change cursor style when hovering over chart elements
+        if (chartElement.length) {
+          event.native.target.style.cursor = 'pointer';
+        } else {
+          event.native.target.style.cursor = 'default';
+        }
+      },
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          // Handle click on chart segment
+          const chart = charts.revenueComposition;
+          const activeElement = elements[0];
+          const { datasetIndex, index } = activeElement;
+          const label = chart.data.labels[index];
+          const value = chart.data.datasets[datasetIndex].data[index];
+          
+          // You can add custom behavior here, like showing a modal with details
+          console.log(`Clicked on ${label}: ${value}`);
         }
       }
-    }
+    },
   });
 };
 
 // Create state comparison chart
-export const createStateComparisonChart = (data, stateFilter, years, charts = {}) => {
+const createStateComparisonChart = (data, stateFilter, years, charts = {}) => {
   const container = document.getElementById('stateComparisonContainer');
   if (!container) return null;
   
@@ -304,74 +443,357 @@ export const createStateComparisonChart = (data, stateFilter, years, charts = {}
     });
   });
   
+    const canvas = document.createElement('canvas');
+    canvas.id = `stateChart-${stateIndex}`;
+    chartContainer.appendChild(canvas);
+    chartsContainer.appendChild(chartContainer);
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Filter data for this state and selected types
+    const stateData = data.filter(item => item.States === state);
+    
+    // Prepare datasets for this state
+    const chartData = {
+      labels: stateData.map(item => item.Type),
+      datasets: [{
+        label: `Revenue (${year})`,
+        data: stateData.map(item => item[year] || 0),
+        backgroundColor: chartColors.slice(0, stateData.length),
+        borderColor: chartColors.slice(0, stateData.length).map(color => color.replace('0.8', '1')),
+        borderWidth: 1,
+        borderRadius: 4,
+        barThickness: 20,
+        categoryPercentage: 0.8,
+        barPercentage: 0.9
+      }]
+    };
+    
+    // Create the chart
+    new Chart(ctx, {
+      type: 'bar',
+      data: chartData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'x', // Changed to x for vertical columns
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Revenue (₹ Cr)',
+              font: {
+                weight: 'bold',
+                size: 13
+              }
+            },
+            grid: {
+              display: true,
+              color: 'rgba(0, 0, 0, 0.05)'
+            },
+            ticks: {
+              callback: (value) => formatCurrency(value)
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              autoSkip: false,
+              maxRotation: 45,
+              minRotation: 45
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const label = context.dataset.label || '';
+                const value = context.raw || 0;
+                return `${label}: ${formatCurrency(value)}`;
+              },
+              labelColor: function(context) {
+                return {
+                  borderColor: context.dataset.borderColor[context.dataIndex],
+                  backgroundColor: context.dataset.backgroundColor[context.dataIndex],
+                  borderWidth: 2,
+                  borderRadius: 2,
+                };
+              }
+            }
+          },
+          legend: {
+            display: false
+          },
+          title: {
+            display: true,
+            text: state,
+            font: {
+              size: 16,
+              weight: '600',
+              family: 'Inter, system-ui, -apple-system, sans-serif'
+            },
+            padding: {
+              top: 0,
+              bottom: 20
+            }
+          }
+        },
+        layout: {
+          padding: 20
+        },
+        animation: {
+          duration: 1000,
+          easing: 'easeInOutQuart'
+        }
+      }
+    });
+  
   return container;
 };
 
 // Create growth rate chart
-export const createGrowthRateChart = (filteredData, charts) => {
-  const ctx = document.getElementById('growthRateChart')?.getContext('2d');
-  if (!ctx) return;
-  
-  // Calculate growth rates by type
-  const growthRates = [];
-  const labels = [];
-  
-  filteredData.forEach(item => {
-    const current = item['FY24'] || 0;
-    const previous = item['FY23'] || 0;
-    const growth = previous ? ((current - previous) / previous) * 100 : 0;
-    growthRates.push(growth);
-    labels.push(item.Type);
-  });
-  
+const createGrowthRateChart = (data, charts, selectedYear = 'FY24') => {
   // Destroy existing chart if it exists
   if (charts.growthRate) {
     charts.growthRate.destroy();
   }
-  
-  // Create new chart
+
+  // Get canvas element
+  const ctx = document.getElementById('growthRateChart');
+  if (!ctx) return;
+
+  // Extract all available years from the data
+  const allYears = [];
+  if (data.length > 0) {
+    Object.keys(data[0]).forEach(key => {
+      if (key.match(/^FY\d{2}(-\w+)?$/) && key !== 'States' && key !== 'State Code') {
+        allYears.push(key);
+      }
+    });
+    allYears.sort();
+  }
+
+  // Find the previous year for comparison
+  const yearMatch = selectedYear.match(/^(FY\d{2})(-\w+)?$/);
+  let previousYear = '';
+  if (yearMatch) {
+    const yearNum = parseInt(yearMatch[1].substring(2));
+    const suffix = yearMatch[2] || '';
+    previousYear = `FY${String(yearNum - 1).padStart(2, '0')}${suffix}`;
+    
+    // If previous year with suffix doesn't exist, try without suffix
+    if (!allYears.includes(previousYear) && suffix) {
+      previousYear = `FY${String(yearNum - 1).padStart(2, '0')}`;
+    }
+  }
+
+  // If we couldn't find a valid previous year, use the one before in the array
+  if (!previousYear || !allYears.includes(previousYear)) {
+    const currentIndex = allYears.indexOf(selectedYear);
+    if (currentIndex > 0) {
+      previousYear = allYears[currentIndex - 1];
+    } else if (allYears.length > 1) {
+      // If selected year is the first one, use the next one
+      previousYear = allYears[1];
+    } else {
+      // Fallback if we can't find a suitable comparison year
+      previousYear = '';
+    }
+  }
+
+
+  // Prepare data for the chart
+  const labels = [];
+  const growthRates = [];
+  const currentValues = [];
+  const previousValues = [];
+
+  if (data.length > 0) {
+    // Get all revenue categories
+    const categories = Object.keys(data[0]).filter(key => 
+      key !== 'States' && 
+      key !== 'State Code' && 
+      key !== 'Total' &&
+      key !== 'Total Tax Revenue' && 
+      key !== 'Total Non-Tax Revenue' &&
+      key !== 'Total Revenue' && 
+      key !== 'Population (in crores)' && 
+      key !== 'Per Capita Income (in INR)' &&
+      !key.match(/^FY\d{2}(-\w+)?$/)
+    );
+
+    // Calculate growth rates for each category
+    categories.forEach(category => {
+      const current = parseFloat(data[0][selectedYear] || 0);
+      const previous = parseFloat(data[0][previousYear] || 0);
+      
+      // Only include categories with non-zero values
+      if (current > 0 || previous > 0) {
+        let growth = 0;
+        if (previous > 0) {
+          growth = ((current - previous) / Math.abs(previous)) * 100;
+        } else if (current > 0) {
+          growth = 100; // 100% growth from 0
+        }
+        
+        labels.push(category.replace(/_/g, ' '));
+        growthRates.push(growth);
+        currentValues.push(current);
+        previousValues.push(previous);
+      }
+    });
+  }
+
+  // Create the chart
   charts.growthRate = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: labels,
       datasets: [{
-        label: 'Growth Rate (%)',
+        label: `Growth Rate (${previousYear} to ${selectedYear})`,
         data: growthRates,
         backgroundColor: growthRates.map(rate => 
-          rate >= 0 ? 'rgba(75, 192, 192, 0.7)' : 'rgba(255, 99, 132, 0.7)'
+          rate >= 0 ? 'rgba(28, 200, 138, 0.7)' : 'rgba(231, 74, 59, 0.7)'
         ),
         borderColor: growthRates.map(rate =>
-          rate >= 0 ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)'
+          rate >= 0 ? 'rgba(28, 200, 138, 1)' : 'rgba(231, 74, 59, 1)'
         ),
-        borderWidth: 1
+        borderWidth: 1,
+        borderRadius: 4,
+        barThickness: 'flex',
+        maxBarThickness: 30,
+        categoryPercentage: 0.8,
+        barPercentage: 0.9
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      indexAxis: 'y',
       scales: {
-        y: {
+        x: {
           beginAtZero: true,
           title: {
             display: true,
-            text: 'Growth Rate (%)'
+            text: 'Growth Rate (%)',
+            font: {
+              weight: 'bold',
+              size: 13
+            }
+          },
+          grid: {
+            display: true,
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            callback: (value) => `${value}%`
+          }
+        },
+        y: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            autoSkip: false,
+            maxRotation: 0,
+            minRotation: 0
           }
         }
       },
       plugins: {
+        tooltip: {
+          backgroundColor: "rgb(255,255,255)",
+          bodyColor: "#5a5c69",
+          titleColor: "#4e73df",
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          },
+          borderColor: '#dddfeb',
+          borderWidth: 1,
+          padding: 15,
+          displayColors: false,
+          callbacks: {
+            title: function(context) {
+              return context[0].label;
+            },
+            label: function(context) {
+              const index = context.dataIndex;
+              const growth = growthRates[index];
+              const current = currentValues[index];
+              const previous = previousValues[index];
+              
+              return [
+                `Growth Rate: ${growth >= 0 ? '+' : ''}${growth.toFixed(2)}%`,
+                `${selectedYear}: ₹${current.toLocaleString('en-IN')} Cr`,
+                `${previousYear}: ₹${previous.toLocaleString('en-IN')} Cr`
+              ];
+            }
+          }
+        },
         legend: {
           display: false
         },
-        tooltip: {
-          callbacks: {
-            label: (context) => {
-              return `Growth: ${context.raw.toFixed(2)}%`;
-            }
+        title: {
+          display: true,
+          text: `Year-over-Year Growth (${previousYear} to ${selectedYear})`,
+          font: {
+            size: 16,
+            weight: 'bold'
+          },
+          padding: {
+            top: 10,
+            bottom: 20
           }
+        }
+      },
+      layout: {
+        padding: {
+          left: 10,
+          right: 10,
+          top: 10,
+          bottom: 10
+        }
+      },
+      onHover: (event, chartElement) => {
+        // Change cursor style when hovering over chart elements
+        if (chartElement.length) {
+          event.native.target.style.cursor = 'pointer';
+        } else {
+          event.native.target.style.cursor = 'default';
+        }
+      },
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          // Handle click on chart segment
+          const chart = charts.growthRate;
+          const activeElement = elements[0];
+          const { datasetIndex, index } = activeElement;
+          const label = chart.data.labels[index];
+          const value = chart.data.datasets[datasetIndex].data[index];
+          
+          // You can add custom behavior here, like showing a modal with details
+          console.log(`Clicked on ${label}: ${value}% growth`);
         }
       }
     }
   });
 };
 
-export { formatCurrency, formatPercentage };
+// Export all utility functions
+export { 
+  formatCurrency, 
+  formatPercentage, 
+  createRevenueTrendsChart, 
+  createRevenueCompositionChart, 
+  createStateComparisonChart, 
+  createGrowthRateChart 
+};
