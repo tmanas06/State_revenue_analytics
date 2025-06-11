@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 
@@ -21,7 +22,6 @@ const Icons = {
   Menu: '☰',
   Close: '✕',
   Download: '⬇️',
-  Refresh: '🔄',
   Info: 'ℹ️'
 };
 
@@ -112,6 +112,21 @@ const AppContent = () => {
   }, []);
 
   const currentYear = new Date().getFullYear();
+
+  // Function to handle Excel download
+  const handleDownloadExcel = () => {
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Convert revenueData to worksheet
+    const ws = XLSX.utils.json_to_sheet(revenueData);
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Revenue Data');
+    
+    // Generate Excel file and trigger download
+    XLSX.writeFile(wb, `Revenue_Data_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
 
   // Revenue Data
   const revenueData = useMemo(() => [
@@ -335,11 +350,14 @@ const AppContent = () => {
           </button>
           <h1>Government Revenue Analytics</h1>
           <div className="user-actions">
-            <button type="button" className="btn btn-icon" title="Refresh">
-              {Icons.Refresh}
-            </button>
-            <button type="button" className="btn btn-icon" title="Download">
+            <button 
+              type="button" 
+              className="btn btn-icon" 
+              title="Download Data"
+              onClick={handleDownloadExcel}
+            >
               {Icons.Download}
+              <span className="tooltip">Download Full Data (Excel)</span>
             </button>
           </div>
         </header>
