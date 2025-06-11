@@ -191,12 +191,12 @@ const Overview = ({ currentStateFilter, setCurrentStateFilter, currentYearRange,
             <canvas id="revenueCompositionChart"></canvas>
           </div>
         </div>
-        <div className="chart-card">
+        {/* <div className="chart-card">
           <h3>State Comparison</h3>
           <div className="chart-wrapper">
             <canvas id="stateComparisonChart"></canvas>
           </div>
-        </div>
+        </div> */}
         <div className="chart-card">
           <h3>Growth Rate</h3>
           <div className="chart-wrapper">
