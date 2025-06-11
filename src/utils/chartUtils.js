@@ -556,6 +556,111 @@ const createStateComparisonChart = (data, stateFilter, years, charts = {}) => {
   return container;
 };
 
+// Create CAGR chart
+const createCAGRChart = (data, charts) => {
+  // Destroy existing chart if it exists
+  if (charts.cagrChart) {
+    charts.cagrChart.destroy();
+  }
+
+  // Get canvas element
+  const ctx = document.getElementById('cagrChart');
+  if (!ctx) return;
+
+  // Group data by state and calculate average CAGR
+  const stateCAGR = {};
+  
+  data.forEach(item => {
+    if (!stateCAGR[item.States]) {
+      stateCAGR[item.States] = [];
+    }
+    // Convert CAGR to percentage (it's stored as decimal)
+    stateCAGR[item.States].push(item.CAGR * 100);
+  });
+
+  // Calculate average CAGR for each state
+  const states = Object.keys(stateCAGR);
+  const avgCAGR = states.map(state => {
+    const cagrs = stateCAGR[state];
+    const sum = cagrs.reduce((a, b) => a + b, 0);
+    return sum / cagrs.length; // Average CAGR
+  });
+
+  // Sort states by CAGR in descending order
+  const sortedIndices = avgCAGR
+    .map((cagr, index) => ({ cagr, index }))
+    .sort((a, b) => b.cagr - a.cagr)
+    .map(item => item.index);
+
+  const sortedStates = sortedIndices.map(i => states[i]);
+  const sortedCAGR = sortedIndices.map(i => avgCAGR[i]);
+
+  // Create the chart
+  charts.cagrChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sortedStates,
+      datasets: [{
+        label: 'Average CAGR (%)',
+        data: sortedCAGR,
+        backgroundColor: sortedCAGR.map(cagr => 
+          cagr >= 0 ? 'rgba(28, 200, 138, 0.8)' : 'rgba(231, 74, 59, 0.8)'
+        ),
+        borderColor: sortedCAGR.map(cagr => 
+          cagr >= 0 ? 'rgba(28, 200, 138, 1)' : 'rgba(231, 74, 59, 1)'
+        ),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              return `CAGR: ${context.raw.toFixed(2)}%`;
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: 'Average Compound Annual Growth Rate (CAGR) by State',
+          font: {
+            size: 16
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'CAGR (%)',
+            font: {
+              weight: 'bold'
+            }
+          },
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            autoSkip: false
+          }
+        }
+      }
+    }
+  });
+};
+
 // Create growth rate chart
 const createGrowthRateChart = (data, charts, selectedYear = 'FY24') => {
   // Destroy existing chart if it exists
@@ -795,5 +900,6 @@ export {
   createRevenueTrendsChart, 
   createRevenueCompositionChart, 
   createStateComparisonChart, 
-  createGrowthRateChart 
+  createGrowthRateChart,
+  createCAGRChart
 };

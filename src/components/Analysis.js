@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { createRevenueCompositionChart, createGrowthRateChart } from '../utils/chartUtils';
+import { createRevenueCompositionChart, createGrowthRateChart, createCAGRChart } from '../utils/chartUtils';
 import './Analysis.css';
 
-const Analysis = ({ currentStateFilter = 'all', revenueData, charts }) => {
+const Analysis = ({ currentStateFilter = 'all', onStateChange, revenueData, charts }) => {
   const [selectedState, setSelectedState] = useState(currentStateFilter);
   const [selectedYear, setSelectedYear] = useState('FY24');
   const [isLoading, setIsLoading] = useState(true);
@@ -43,28 +43,58 @@ const Analysis = ({ currentStateFilter = 'all', revenueData, charts }) => {
 
   // Handle state change
   const handleStateChange = (e) => {
-    setSelectedState(e.target.value);
+    const newState = e.target.value;
+    setSelectedState(newState);
+    if (onStateChange) {
+      onStateChange(newState);
+    }
   };
 
   useEffect(() => {
-    setIsLoading(true);
+    let isMounted = true;
     
-    // Filter data based on state filter
-    const filteredData = getFilteredData(revenueData, selectedState);
+    const initializeCharts = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Filter data based on state filter
+        const filteredData = getFilteredData(revenueData, selectedState);
+        
+        // Wait for DOM to be ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Create charts with selected year
+        if (isMounted) {
+          createRevenueCompositionChart(filteredData, charts, selectedYear);
+          createGrowthRateChart(filteredData, charts, selectedYear);
+          
+          // Always show all states for CAGR chart
+          const allStatesData = getFilteredData(revenueData, 'all');
+          createCAGRChart(allStatesData, charts);
+          
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing charts:', error);
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
     
-    // Create charts with selected year
-    createRevenueCompositionChart(filteredData, charts, selectedYear);
-    createGrowthRateChart(filteredData, charts, selectedYear);
-    
-    setIsLoading(false);
+    initializeCharts();
     
     // Cleanup function
     return () => {
+      isMounted = false;
       if (charts.revenueComposition) {
         charts.revenueComposition.destroy();
       }
       if (charts.growthRate) {
         charts.growthRate.destroy();
+      }
+      if (charts.cagrChart) {
+        charts.cagrChart.destroy();
       }
     };
   }, [selectedState, revenueData, charts, selectedYear]);
@@ -108,7 +138,7 @@ const Analysis = ({ currentStateFilter = 'all', revenueData, charts }) => {
             <select 
               className="form-select state-select"
               value={selectedState}
-              onChange={(e) => setSelectedState(e.target.value)}
+              onChange={handleStateChange}
             >
               {availableStates.map(state => (
                 <option key={state.value} value={state.value}>
@@ -170,6 +200,25 @@ const Analysis = ({ currentStateFilter = 'all', revenueData, charts }) => {
             </div>
             <div className="chart-wrapper">
               <canvas id="growthRateChart"></canvas>
+            </div>
+          </div>
+          
+          <div className="chart-full">
+            <div className="chart-header">
+              <h2>Compound Annual Growth Rate (CAGR) by State</h2>
+              <div className="chart-legend">
+                <span className="legend-item">
+                  <span className="legend-color" style={{backgroundColor: 'rgba(28, 200, 138, 0.8)'}}></span>
+                  Positive Growth
+                </span>
+                <span className="legend-item">
+                  <span className="legend-color" style={{backgroundColor: 'rgba(231, 74, 59, 0.8)'}}></span>
+                  Negative Growth
+                </span>
+              </div>
+            </div>
+            <div className="chart-wrapper" style={{height: '500px'}}>
+              <canvas id="cagrChart"></canvas>
             </div>
           </div>
         </div>

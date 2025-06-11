@@ -5,7 +5,6 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 // Import components
 import Overview from './components/Overview';
-import RevenueTrends from './components/RevenueTrends';
 import Analysis from './components/Analysis';
 import CompareStates from './components/CompareStates';
 import Settings from './components/Settings';
@@ -71,7 +70,6 @@ const App = () => {
 // Navigation items
 const navItems = [
   { id: 'overview', label: 'Overview', icon: Icons.Home },
-  { id: 'trends', label: 'Revenue Trends', icon: Icons.Trends },
   { id: 'analysis', label: 'Analysis', icon: Icons.Analysis },
   { id: 'compare', label: 'Compare States', icon: Icons.Compare },
   { id: 'settings', label: 'Settings', icon: Icons.Settings }
@@ -238,7 +236,7 @@ const AppContent = () => {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Icons.Home, path: '/' },
     { id: 'quick-search', label: 'Quick Search', icon: Icons.Search, path: '/quick-search' },
-    { id: 'trends', label: 'Revenue Trends', icon: Icons.Trends, path: '/trends' },
+    // { id: 'trends', label: 'Revenue Trends', icon: Icons.Trends, path: '/trends' },
     { id: 'analysis', label: 'Analysis', icon: Icons.Analysis, path: '/analysis' },
     { id: 'compare', label: 'Compare States', icon: Icons.Compare, path: '/compare' },
     { id: 'settings', label: 'Settings', icon: Icons.Settings, path: '/settings' }
@@ -386,20 +384,6 @@ const AppContent = () => {
                 <>
                   <h1 className="page-title">Quick Search</h1>
                   <QuickSearch revenueData={revenueData} />
-                </>
-              } 
-            />
-            <Route 
-              path="/trends" 
-              element={
-                <>
-                  <h1 className="page-title">Revenue Trends</h1>
-                  <RevenueTrends 
-                    currentStateFilter={currentStateFilter}
-                    currentYearRange={currentYearRange}
-                    revenueData={revenueData}
-                    charts={charts}
-                  />
                 </>
               } 
             />
