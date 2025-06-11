@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 // Import components
 import Overview from './components/Overview';
@@ -57,20 +58,32 @@ class ErrorBoundary extends React.Component {
 // Main App Component with Router
 const App = () => {
   return (
-    <ErrorBoundary>
+    <ThemeProvider>
       <Router>
-        <AppContent />
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
       </Router>
-    </ErrorBoundary>
+    </ThemeProvider>
   );
 };
 
+// Navigation items
+const navItems = [
+  { id: 'overview', label: 'Overview', icon: Icons.Home },
+  { id: 'trends', label: 'Revenue Trends', icon: Icons.Trends },
+  { id: 'analysis', label: 'Analysis', icon: Icons.Analysis },
+  { id: 'compare', label: 'Compare States', icon: Icons.Compare },
+  { id: 'settings', label: 'Settings', icon: Icons.Settings }
+];
+
 // Main Content Component
 const AppContent = () => {
+  const { darkMode } = useTheme();
   const location = useLocation();
   const [currentStateFilter, setCurrentStateFilter] = useState('both');
   const [currentYearRange, setCurrentYearRange] = useState([0, 9]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 992);
   const [activeNav, setActiveNav] = useState(location.pathname.substring(1) || 'overview');
   const charts = useMemo(() => ({}), []);
   
@@ -259,6 +272,8 @@ const AppContent = () => {
       
       if (window.innerWidth <= 992 && 
           isSidebarOpen && 
+          sidebar && 
+          menuToggle &&
           !sidebar.contains(e.target) && 
           !menuToggle.contains(e.target)) {
         setIsSidebarOpen(false);
@@ -266,13 +281,16 @@ const AppContent = () => {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isSidebarOpen]);
 
   return (
-    <div className="app">
-      {/* Sidebar */}
-      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+    <div className={`app-container ${darkMode ? 'dark' : ''}`}>
+      <div className="app-layout">
+        {/* Sidebar */}
+        <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <h2>Revenue Dashboard</h2>
           <button 
@@ -374,6 +392,7 @@ const AppContent = () => {
                   <h1 className="page-title">Analysis</h1>
                   <Analysis 
                     currentStateFilter={currentStateFilter}
+                    onStateChange={setCurrentStateFilter}
                     revenueData={revenueData}
                     charts={charts}
                   />
@@ -411,7 +430,8 @@ const AppContent = () => {
             />
           </Routes>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };

@@ -7,25 +7,34 @@ const Analysis = ({ currentStateFilter = 'all', revenueData, charts }) => {
   const [selectedYear, setSelectedYear] = useState('FY24');
   const [isLoading, setIsLoading] = useState(true);
   
+  // Update selectedState when currentStateFilter prop changes
+  useEffect(() => {
+    setSelectedState(currentStateFilter);
+  }, [currentStateFilter]);
+  
   // Available years for selection
   const availableYears = [
     'FY17', 'FY18', 'FY19', 'FY20', 'FY21', 
     'FY22', 'FY23', 'FY24', 'FY25-RE', 'FY26-BE'
   ];
   
-  // Available states for selection
-  const availableStates = [
-    { value: 'all', label: 'All States' },
-    { value: 'odisha', label: 'Odisha' },
-    { value: 'uttar-pradesh', label: 'Uttar Pradesh' },
-    { value: 'tamil-nadu', label: 'Tamil Nadu' },
-    { value: 'rajasthan', label: 'Rajasthan' },
-    { value: 'telangana', label: 'Telangana' },
-    { value: 'karnataka', label: 'Karnataka' },
-    { value: 'andhra-pradesh', label: 'Andhra Pradesh' },
-    { value: 'gujrat', label: 'Gujrat' },
-    { value: 'maharashtra', label: 'Maharashtra' }
-  ];
+  // Generate available states from revenue data
+  const availableStates = React.useMemo(() => {
+    if (!revenueData) return [{ value: 'all', label: 'All States' }];
+    
+    // Get unique states from revenue data
+    const stateSet = new Set(revenueData.map(item => item.States));
+    const states = Array.from(stateSet).sort();
+    
+    // Convert to the required format
+    return [
+      { value: 'all', label: 'All States' },
+      ...states.map(state => ({
+        value: state.toLowerCase().replace(/\s+/g, '-'),
+        label: state
+      }))
+    ];
+  }, [revenueData]);
 
   // Handle year change
   const handleYearChange = (e) => {
@@ -34,7 +43,7 @@ const Analysis = ({ currentStateFilter = 'all', revenueData, charts }) => {
 
   // Handle state change
   const handleStateChange = (e) => {
-    onStateChange(e.target.value);
+    setSelectedState(e.target.value);
   };
 
   useEffect(() => {
@@ -60,21 +69,23 @@ const Analysis = ({ currentStateFilter = 'all', revenueData, charts }) => {
     };
   }, [selectedState, revenueData, charts, selectedYear]);
   
+  // Map state filter to state name
+  const stateMap = React.useMemo(() => {
+    const map = { 'all': null };
+    if (revenueData) {
+      const stateSet = new Set(revenueData.map(item => item.States));
+      Array.from(stateSet).forEach(state => {
+        const key = state.toLowerCase().replace(/\s+/g, '-');
+        map[key] = state;
+      });
+    }
+    return map;
+  }, [revenueData]);
+  
   // Helper function to filter data by state
   const getFilteredData = (data, stateFilter) => {
-    if (stateFilter === 'all') return [...data];
-    
-    const stateMap = {
-      'odisha': 'Odisha',
-      'uttar-pradesh': 'Uttar Pradesh',
-      'tamil-nadu': 'Tamil Nadu',
-      'rajasthan': 'Rajasthan',
-      'telangana': 'Telangana',
-      'karnataka': 'Karnataka',
-      'andhra-pradesh': 'Andhra Pradesh',
-      'gujrat': 'Gujrat',
-      'maharashtra': 'Maharashtra'
-    };
+    if (!data) return [];
+    if (stateFilter === 'all') return data;
     
     const stateName = stateMap[stateFilter];
     return stateName ? data.filter(item => item.States === stateName) : [];
