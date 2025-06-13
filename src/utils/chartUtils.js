@@ -558,7 +558,7 @@ const createStateComparisonChart = (data, stateFilter, years, charts = {}) => {
   return container;
 };
 
-// Create CAGR chart
+// Create CAGR Bar chart
 const createCAGRChart = (data, charts) => {
   // Destroy existing chart if it exists
   if (charts.cagrChart) {
@@ -895,6 +895,81 @@ const createGrowthRateChart = (data, charts, selectedYear = 'FY24') => {
   });
 };
 
+// Create CAGR Pie chart
+const createCAGRPieChart = (data, charts) => {
+  // Destroy existing chart if it exists
+  if (charts.cagrPieChart) {
+    charts.cagrPieChart.destroy();
+  }
+
+  // Get canvas element
+  const ctx = document.getElementById('cagrPieChart');
+  if (!ctx) return;
+
+  // Group data by state and calculate average CAGR
+  const stateCAGR = {};
+  data.forEach(item => {
+    if (!stateCAGR[item.States]) {
+      stateCAGR[item.States] = [];
+    }
+    stateCAGR[item.States].push(item.CAGR * 100);
+  });
+
+  // Calculate average CAGR for each state
+  const states = Object.keys(stateCAGR);
+  const avgCAGR = states.map(state => {
+    const cagrs = stateCAGR[state];
+    const sum = cagrs.reduce((a, b) => a + b, 0);
+    return sum / cagrs.length;
+  });
+
+  // Pie chart colors
+  const chartColors = [
+    '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+    '#5a5c69', '#858796', '#3a3b45', '#00bcd4', '#ff9800',
+    '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4',
+    '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39'
+  ];
+
+  charts.cagrPieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: states,
+      datasets: [{
+        data: avgCAGR,
+        backgroundColor: chartColors.slice(0, states.length),
+        borderColor: '#fff',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'right',
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.raw || 0;
+              return `${label}: ${value.toFixed(2)}%`;
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: 'CAGR by State (Pie Chart)',
+          font: {
+            size: 16,
+            weight: 'bold'
+          }
+        }
+      }
+    }
+  });
+};
+
 // Export all utility functions
 export { 
   formatCurrency, 
@@ -903,5 +978,6 @@ export {
   createRevenueCompositionChart, 
   createStateComparisonChart, 
   createGrowthRateChart,
-  createCAGRChart
+  createCAGRChart,
+  createCAGRPieChart
 };

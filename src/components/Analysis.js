@@ -1,107 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { createRevenueCompositionChart, createGrowthRateChart, createCAGRChart } from '../utils/chartUtils';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createRevenueCompositionChart, createGrowthRateChart, createCAGRChart, createCAGRPieChart } from '../utils/chartUtils';
 import './Analysis.css';
 
 const Analysis = ({ currentStateFilter = 'all', onStateChange, revenueData, charts }) => {
   const [selectedState, setSelectedState] = useState(currentStateFilter);
   const [selectedYear, setSelectedYear] = useState('FY24');
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Update selectedState when currentStateFilter prop changes
-  useEffect(() => {
-    setSelectedState(currentStateFilter);
-  }, [currentStateFilter]);
-  
-  // Available years for selection
-  const availableYears = [
-    'FY17', 'FY18', 'FY19', 'FY20', 'FY21', 
-    'FY22', 'FY23', 'FY24', 'FY25-RE', 'FY26-BE'
-  ];
-  
-  // Generate available states from revenue data
-  const availableStates = React.useMemo(() => {
-    if (!revenueData) return [{ value: 'all', label: 'All States' }];
-    
-    // Get unique states from revenue data
-    const stateSet = new Set(revenueData.map(item => item.States));
-    const states = Array.from(stateSet).sort();
-    
-    // Convert to the required format
-    return [
-      { value: 'all', label: 'All States' },
-      ...states.map(state => ({
-        value: state.toLowerCase().replace(/\s+/g, '-'),
-        label: state
-      }))
-    ];
-  }, [revenueData]);
 
-  // Handle year change
-  const handleYearChange = (e) => {
-    setSelectedYear(e.target.value);
-  };
-
-  // Handle state change
-  const handleStateChange = (e) => {
-    const newState = e.target.value;
-    setSelectedState(newState);
-    if (onStateChange) {
-      onStateChange(newState);
-    }
-  };
-
-  useEffect(() => {
-    let isMounted = true;
-    
-    const initializeCharts = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Filter data based on state filter
-        const filteredData = getFilteredData(revenueData, selectedState);
-        
-        // Wait for DOM to be ready
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Create charts with selected year
-        if (isMounted) {
-          createRevenueCompositionChart(filteredData, charts, selectedYear);
-          createGrowthRateChart(filteredData, charts, selectedYear);
-          
-          // Always show all states for CAGR chart
-          const allStatesData = getFilteredData(revenueData, 'all');
-          createCAGRChart(allStatesData, charts);
-          
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Error initializing charts:', error);
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-    
-    initializeCharts();
-    
-    // Cleanup function
-    return () => {
-      isMounted = false;
-      if (charts.revenueComposition) {
-        charts.revenueComposition.destroy();
-      }
-      if (charts.growthRate) {
-        charts.growthRate.destroy();
-      }
-      if (charts.cagrChart) {
-        charts.cagrChart.destroy();
-      }
-    };
-  }, [selectedState, revenueData, charts, selectedYear]);
-  
-  // Map state filter to state name
-  const stateMap = React.useMemo(() => {
-    const map = { 'all': null };
+  // Map filter value to actual state name
+  const stateMap = useMemo(() => {
+    const map = { all: null };
     if (revenueData) {
       const stateSet = new Set(revenueData.map(item => item.States));
       Array.from(stateSet).forEach(state => {
@@ -111,22 +19,75 @@ const Analysis = ({ currentStateFilter = 'all', onStateChange, revenueData, char
     }
     return map;
   }, [revenueData]);
-  
-  // Helper function to filter data by state
+
+  // Available states for dropdown
+  const availableStates = useMemo(() => {
+    if (!revenueData) return [{ value: 'all', label: 'All States' }];
+    const stateSet = new Set(revenueData.map(item => item.States));
+    const states = Array.from(stateSet).sort();
+    return [
+      { value: 'all', label: 'All States' },
+      ...states.map(state => ({ value: state.toLowerCase().replace(/\s+/g, '-'), label: state }))
+    ];
+  }, [revenueData]);
+
+  // Helper: filter data by selected state
   const getFilteredData = (data, stateFilter) => {
     if (!data) return [];
     if (stateFilter === 'all') return data;
-    
     const stateName = stateMap[stateFilter];
     return stateName ? data.filter(item => item.States === stateName) : [];
   };
 
-  // Get current state name for display
+  // Helper: get display name for state
   const getCurrentStateName = () => {
     if (selectedState === 'all') return 'All States';
     const state = availableStates.find(s => s.value === selectedState);
     return state ? state.label : 'Selected State';
   };
+
+  // Handle dropdowns
+  const handleYearChange = (e) => setSelectedYear(e.target.value);
+  const handleStateChange = (e) => {
+    const newState = e.target.value;
+    setSelectedState(newState);
+    if (onStateChange) onStateChange(newState);
+  };
+
+  // Chart initialization
+  useEffect(() => {
+    let isMounted = true;
+    const initializeCharts = async () => {
+      setIsLoading(true);
+      const filteredData = getFilteredData(revenueData, selectedState);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (isMounted && filteredData.length > 0) {
+        createRevenueCompositionChart(filteredData, charts, selectedYear);
+        createGrowthRateChart(filteredData, charts, selectedYear);
+        const allStatesData = getFilteredData(revenueData, 'all');
+        createCAGRChart(allStatesData, charts);
+        createCAGRPieChart(allStatesData, charts);
+      }
+      setIsLoading(false);
+    };
+    initializeCharts();
+    return () => {
+      isMounted = false;
+      if (charts.revenueComposition) charts.revenueComposition.destroy();
+      if (charts.growthRate) charts.growthRate.destroy();
+      if (charts.cagrChart) charts.cagrChart.destroy();
+      if (charts.cagrPieChart) charts.cagrPieChart.destroy();
+    };
+  }, [selectedState, revenueData, charts, selectedYear]);
+
+  // Available years for dropdown
+  const availableYears = [
+    'FY17', 'FY18', 'FY19', 'FY20', 'FY21', 'FY22', 'FY23', 'FY24', 'FY25-RE', 'FY26-BE'
+  ];
+
+  // Data presence check
+  const filteredData = getFilteredData(revenueData, selectedState);
+  const hasData = filteredData && filteredData.length > 0 && filteredData.some(item => item[selectedYear] && item[selectedYear] !== 0);
 
   return (
     <div className="analysis-page">
@@ -167,6 +128,8 @@ const Analysis = ({ currentStateFilter = 'all', onStateChange, revenueData, char
 
       {isLoading ? (
         <div className="loading">Loading charts...</div>
+      ) : !hasData ? (
+        <div className="no-data-message">No data available for the selected state and year.</div>
       ) : (
         <div className="chart-container">
           <div className="chart-full">
@@ -219,6 +182,9 @@ const Analysis = ({ currentStateFilter = 'all', onStateChange, revenueData, char
             </div>
             <div className="chart-wrapper" style={{height: '500px'}}>
               <canvas id="cagrChart"></canvas>
+            </div>
+            <div className="chart-wrapper" style={{height: '400px', marginTop: '32px'}}>
+              <canvas id="cagrPieChart"></canvas>
             </div>
           </div>
         </div>
