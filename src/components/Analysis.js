@@ -10,7 +10,7 @@ import {
   getTotalRevenueByType,
   getTopRevenueTypesByState
 } from '../data/revenueData';
-import './analysis.css';
+import './Analysis.css';
 
 const stateOptions = Array.from(new Set(revenueData.map(d => d.abbreviation)))
   .map(abbr => {
