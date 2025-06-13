@@ -1,3 +1,51 @@
+const fiscalYears = ['FY17', 'FY18', 'FY19', 'FY20', 'FY21', 'FY22', 'FY23', 'FY24', 'FY25-RE', 'FY26-BE'];
+
+function getTotalRevenueByStateAndYear(state, year) {
+  if (!fiscalYears.includes(year)) return 0;
+  const stateData = revenueData.filter(d => d.abbreviation === state);
+  return stateData.reduce((total, d) => total + (d[year] || 0), 0);
+}
+
+function getRevenueTrend(state, type) {
+  const filtered = revenueData.filter(d => d.abbreviation === state && d.Type === type);
+  if (filtered.length === 0) return [];
+
+  // Assuming only one matching row per (state,type)
+  const data = filtered[0];
+  return fiscalYears.map(year => ({ year, value: data[year] || 0 }));
+}
+
+function getCAGR(state, type) {
+  const filtered = revenueData.filter(d => d.abbreviation === state && d.Type === type);
+  if (filtered.length === 0) return 0;
+
+  const data = filtered[0];
+  const firstYearValue = data[fiscalYears[0]];
+  const lastYearValue = data[fiscalYears[fiscalYears.length - 1]];
+  if (firstYearValue <= 0 || lastYearValue <= 0) return 0;
+
+  const periods = fiscalYears.length - 1;
+  const cagr = ((lastYearValue / firstYearValue) ** (1 / periods) - 1) * 100;
+  return cagr;
+}
+
+function getTotalRevenueByState(state) {
+  const stateData = revenueData.filter(d => d.abbreviation === state);
+  return stateData.reduce((total, d) => total + (d[fiscalYears[fiscalYears.length - 1]] || 0), 0);
+}
+
+function getTotalRevenueByType(type) {
+  const typeData = revenueData.filter(d => d.Type === type);
+  return typeData.reduce((total, d) => total + (d[fiscalYears[fiscalYears.length - 1]] || 0), 0);
+}
+
+function getTopRevenueTypesByState(state, count) {
+  const stateData = revenueData.filter(d => d.abbreviation === state);
+  const sortedData = [...stateData].sort((a, b) => (b[fiscalYears[fiscalYears.length - 1]] || 0) - (a[fiscalYears[fiscalYears.length - 1]] || 0));
+  return sortedData.slice(0, count);
+}
+
+
 const revenueData = [
   // Odisha
   {"Type":"Commercial Taxes","States":"Odisha","abbreviation":"OD","FY17":15343,"FY18":22736,"FY19":20399,"FY20":21008,"FY21":21195,"FY22":26757,"FY23":31020,"FY24":60618,"FY25-RE":40850,"FY26-BE":44720,"CAGR":0.13021280123110301},
@@ -99,4 +147,13 @@ const revenueData = [
   {"Type":"Forest Resource","States":"Maharashtra","abbreviation":"MH","FY17":177,"FY18":143,"FY19":297,"FY20":284,"FY21":331,"FY22":205,"FY23":310,"FY24":446,"FY25-RE":446,"FY26-BE":468,"CAGR":0.12245825701775725}
 ];
 
-export default revenueData;
+export {
+  revenueData,
+  fiscalYears,
+  getTotalRevenueByStateAndYear,
+  getRevenueTrend,
+  getCAGR,
+  getTotalRevenueByState,
+  getTotalRevenueByType,
+  getTopRevenueTypesByState
+};
