@@ -47,6 +47,42 @@ const Analysis = () => {
     return getTopRevenueTypesByState(selectedState, 3);
   }, [selectedState]);
 
+  const cagrChartRef = useRef(null);
+const cagrChartInstance = useRef(null);
+
+useEffect(() => {
+  if (cagrChartInstance.current) {
+    cagrChartInstance.current.destroy();
+  }
+  if (cagrChartRef.current && selectedState) {
+    // Get CAGR for all types in the selected state
+    const allTypes = typeOptions.map(opt => opt.value);
+    const cagrData = allTypes.map(type => getCAGR(selectedState, type));
+    cagrChartInstance.current = new Chart(cagrChartRef.current, {
+      type: 'bar',
+      data: {
+        labels: allTypes,
+        datasets: [{
+          label: 'CAGR (%)',
+          data: cagrData.map(val => (val !== null && !isNaN(val) ? val.toFixed(2) : 0)),
+          backgroundColor: 'rgba(255, 99, 132, 0.6)',
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+  return () => {
+    if (cagrChartInstance.current) {
+      cagrChartInstance.current.destroy();
+    }
+  };
+}, [selectedState, typeOptions]);
+
   const trendChartRef = useRef(null);
   const chartInstanceRef = useRef(null);
 
@@ -101,7 +137,7 @@ const Analysis = () => {
             ))}
           </select>
         </div>
-        <div className="form-group">
+        {/* <div className="form-group">
           <label htmlFor="year-select">Select Year</label>
           <select
             id="year-select"
@@ -113,7 +149,7 @@ const Analysis = () => {
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
-        </div>
+        </div> */}
         <div className="form-group">
           <label htmlFor="type-select">Select Revenue Type</label>
           <select
@@ -133,7 +169,12 @@ const Analysis = () => {
         <h3>Revenue Trend Chart ({selectedType})</h3>
         <canvas ref={trendChartRef}></canvas>
       </div>
-      
+
+      <div className="result-card">
+        <h3>CAGR by Revenue Type</h3>
+        <canvas ref={cagrChartRef}></canvas>
+      </div>
+
       <div className="analysis-results">
         <div className="result-card">
           <h3>Total Revenue ({selectedYear})</h3>

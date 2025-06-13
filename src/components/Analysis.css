@@ -1,4 +1,22 @@
 /* Main container */
+html, body {
+  height: auto !important;
+  min-height: 100vh;
+  overflow-y: auto !important;
+}
+
+.app-container,
+.main-content {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+body, html, .app-container, .main-content, .analysis-page {
+  overflow: hidden;
+  height: 100vh;
+}
+
 .analysis-page {
   padding: 1.5rem;
   max-width: 1400px;
@@ -12,6 +30,11 @@
   padding: 1rem 0;
   border-bottom: 1px solid #e3e6f0;
 }
+
+/* .analysis-page {
+  overflow-y: auto;
+  height: auto; /* or min-height: 100vh; */
+/* } */ */
 
 .analysis-header h1 {
   color: #4e73df;
